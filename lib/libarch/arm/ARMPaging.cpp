@@ -37,7 +37,7 @@ ARMPaging::ARMPaging(MemoryMap *map, SplitAllocator *alloc)
     if (alloc->allocate(phys, virt) == Allocator::Success)
     {
         m_firstTable = (ARMFirstTable *) virt.address;
-        setupFirstTable(map, phys.address, coreInfo.kernel.phys);
+        setupFirstTable(map, phys.address, coreInfo.memory.phys);
     }
 }
 
@@ -264,12 +264,13 @@ MemoryContext::Result ARMPaging::access(Address virt, Memory::Access *access) co
     return m_firstTable->access(virt, access, m_alloc);
 }
 
-MemoryContext::Result ARMPaging::releaseRegion(MemoryMap::Region region, bool tablesOnly)
+MemoryContext::Result ARMPaging::releaseSection(const Memory::Range & range,
+                                                const bool tablesOnly)
 {
-    return m_firstTable->releaseRange(m_map->range(region), m_alloc, tablesOnly);
+    return m_firstTable->releaseSection(range, m_alloc, tablesOnly);
 }
 
-MemoryContext::Result ARMPaging::releaseRange(Memory::Range *range, bool tablesOnly)
+MemoryContext::Result ARMPaging::releaseRange(Memory::Range *range)
 {
-    return m_firstTable->releaseRange(*range, m_alloc, tablesOnly);
+    return m_firstTable->releaseRange(*range, m_alloc);
 }

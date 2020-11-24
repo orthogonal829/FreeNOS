@@ -33,14 +33,17 @@ env.TargetProgram('kernel.empty', [ Glob('*.cpp'),
                               Glob('#' + env['BUILDROOT'] + '/kernel/API/*.cpp'),
                               Glob('#' + env['BUILDROOT'] + '/kernel/arm/*.cpp'),
                               Glob('#' + env['BUILDROOT'] + '/kernel/arm/*.S'),
-                              '#server/serial/NS16550.cpp'
+                              '#' + env['BUILDROOT'] + '/server/serial/SerialDevice.o',
+                              '#' + env['BUILDROOT'] + '/server/serial/NS16550.o'
                               ],
                    False)
 
 #
-# Place the empty kernel in the rootfs for CoreServer
+# Place the stripped, compressed empty kernel in the rootfs for CoreServer
 #
-env.TargetInstallAs('kernel.empty', '${ROOTFS}/boot/kernel')
+env.Strip('kernel.stripped', 'kernel.empty')
+env.Lz4Compress('kernel.lz4', 'kernel.stripped')
+env.TargetInstallAs('kernel.lz4', '${ROOTFS}/boot/kernel')
 
 #
 # Embed the boot.img in the kernel

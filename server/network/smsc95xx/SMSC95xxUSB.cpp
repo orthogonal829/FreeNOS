@@ -54,15 +54,15 @@ SMSC95xxUSB::~SMSC95xxUSB()
     delete m_value;
 }
 
-FileSystem::Error SMSC95xxUSB::initialize()
+FileSystem::Result SMSC95xxUSB::initialize()
 {
     DEBUG("");
 
-    FileSystem::Error r = USBDevice::initialize();
-    if (r != FileSystem::Success)
+    const FileSystem::Result result = USBDevice::initialize();
+    if (result != FileSystem::Success)
     {
         ERROR("failed to initialize USBDevice");
-        return r;
+        return result;
     }
     DEBUG("setting MAC");
 
@@ -103,13 +103,13 @@ void SMSC95xxUSB::readStart()
         return;
     }
     // Begin USB transfer
-    FileSystem::Error err = beginTransfer(
+    Error err = beginTransfer(
         USBTransfer::Bulk,
         USBTransfer::In,
-        m_endpoints[0].endpointAddress & 0xf,
+        m_endpoints[0]->endpointAddress & 0xf,
         m_rxPacket->data,
         rxSize,
-        m_endpoints[0].maxPacketSize,
+        m_endpoints[0]->maxPacketSize,
         m_readFinished
     );
     if (err != FileSystem::Success)
@@ -180,10 +180,10 @@ void SMSC95xxUSB::writeStart()
     beginTransfer(
         USBTransfer::Bulk,
         USBTransfer::Out,
-        m_endpoints[1].endpointAddress & 0xf,
+        m_endpoints[1]->endpointAddress & 0xf,
         m_txPacket->data,
         m_txPacket->size,
-        m_endpoints[1].maxPacketSize,
+        m_endpoints[1]->maxPacketSize,
         m_writeFinished
     );
 }
@@ -209,7 +209,7 @@ void SMSC95xxUSB::writeFinished(FileSystemMessage *message)
     writeStart();
 }
 
-FileSystem::Error SMSC95xxUSB::transmit(NetworkQueue::Packet *pkt)
+FileSystem::Result SMSC95xxUSB::transmit(NetworkQueue::Packet *pkt)
 {
     DEBUG("size = " << pkt->size);
 
@@ -245,10 +245,10 @@ FileSystem::Error SMSC95xxUSB::transmit(NetworkQueue::Packet *pkt)
         writeStart();
 
     // Packet in transmission
-    return pkt->size;
+    return FileSystem::Success;
 }
 
-FileSystem::Error SMSC95xxUSB::getMACAddress(Ethernet::Address *address)
+Error SMSC95xxUSB::getMACAddress(Ethernet::Address *address)
 {
     DEBUG("");
 
@@ -264,7 +264,7 @@ FileSystem::Error SMSC95xxUSB::getMACAddress(Ethernet::Address *address)
     return FileSystem::Success;
 }
 
-FileSystem::Error SMSC95xxUSB::setMACAddress(Ethernet::Address address)
+Error SMSC95xxUSB::setMACAddress(Ethernet::Address address)
 {
     DEBUG("");
 
@@ -279,7 +279,7 @@ FileSystem::Error SMSC95xxUSB::setMACAddress(Ethernet::Address address)
 
 u32 SMSC95xxUSB::read(SMSC95xxUSB::Register reg)
 {
-    FileSystem::Error r = controlMessage(ReadRegister,
+    Error r = controlMessage(ReadRegister,
                              USBTransfer::In,
                              USBTransfer::Vendor,
                              USBTransfer::Device,
@@ -297,7 +297,7 @@ u32 SMSC95xxUSB::read(SMSC95xxUSB::Register reg)
 void SMSC95xxUSB::write(SMSC95xxUSB::Register reg, u32 value)
 {
     *m_value = value;
-    FileSystem::Error r = controlMessage(WriteRegister,
+    Error r = controlMessage(WriteRegister,
                              USBTransfer::Out,
                              USBTransfer::Vendor,
                              USBTransfer::Device,

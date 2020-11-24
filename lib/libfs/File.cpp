@@ -18,13 +18,15 @@
 #include <FreeNOS/User.h>
 #include "File.h"
 
-File::File(FileSystem::FileType type, UserID uid, GroupID gid)
+File::File(const FileSystem::FileType type,
+           const UserID uid,
+           const GroupID gid)
     : m_type(type)
     , m_uid(uid)
     , m_gid(gid)
+    , m_access(FileSystem::OwnerRWX)
+    , m_size(0)
 {
-    m_access    = FileSystem::OwnerRWX;
-    m_size      = 0;
 }
 
 File::~File()
@@ -36,20 +38,23 @@ FileSystem::FileType File::getType() const
     return m_type;
 }
 
-Error File::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result File::read(IOBuffer & buffer,
+                              Size & size,
+                              const Size offset)
 {
     return FileSystem::NotSupported;
 }
 
-Error File::write(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result File::write(IOBuffer & buffer,
+                               Size & size,
+                               const Size offset)
 {
     return FileSystem::NotSupported;
 }
 
-Error File::status(FileSystemMessage *msg)
+FileSystem::Result File::status(FileSystemMessage *msg)
 {
     FileSystem::FileStat st;
-    Error e;
 
     // Fill in the status structure
     st.type     = m_type;
@@ -57,17 +62,17 @@ Error File::status(FileSystemMessage *msg)
     st.size     = m_size;
     st.userID   = m_uid;
     st.groupID  = m_gid;
-    st.deviceID.major = m_deviceId.major;
-    st.deviceID.minor = m_deviceId.minor;
 
     // Copy to the remote process
-    if ((e = VMCopy(msg->from, API::Write, (Address) &st,
-                   (Address) msg->stat, sizeof(st)) > 0))
+    const API::Result result = VMCopy(msg->from, API::Write, (Address) &st,
+                                     (Address) msg->stat, sizeof(st));
+    if (result == API::Success)
     {
         return FileSystem::Success;
     }
     else
     {
-        return e;
+        ERROR("VMCopy failed for PID " << msg->from << ": result = " << (int) result);
+        return FileSystem::IOError;
     }
 }

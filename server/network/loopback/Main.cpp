@@ -22,10 +22,8 @@
 int main(int argc, char **argv)
 {
     KernelLog log;
-    log.setMinimumLogLevel(Log::Notice);
-
     NetworkServer server("/network/loopback");
-    server.registerDevice(new Loopback(&server), "io");
+    server.registerDevice(new Loopback(server), "io");
 
     // Initialize
     const FileSystem::Result result = server.initialize();

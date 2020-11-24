@@ -47,7 +47,9 @@ class File
      * @param uid User identity.
      * @param gid Group identity.
      */
-    File(FileSystem::FileType type = FileSystem::RegularFile, UserID uid = ZERO, GroupID gid = ZERO);
+    File(const FileSystem::FileType type = FileSystem::RegularFile,
+         const UserID uid = ZERO,
+         const GroupID gid = ZERO);
 
     /**
      * Destructor function.
@@ -62,46 +64,46 @@ class File
     FileSystem::FileType getType() const;
 
     /**
-     * @brief Read bytes from the file.
+     * Read bytes from the file
      *
      * @param buffer Input/Output buffer to output bytes to.
-     * @param size Number of bytes to read, at maximum.
+     * @param size Maximum number of bytes to read on input.
+     *             On output, the actual number of bytes read.
      * @param offset Offset inside the file to start reading.
      *
-     * @return Number of bytes read on success, Error on failure.
+     * @return Result code
      */
-    virtual FileSystem::Error read(IOBuffer & buffer, Size size, Size offset);
+    virtual FileSystem::Result read(IOBuffer & buffer,
+                                    Size & size,
+                                    const Size offset);
 
     /**
-     * Write bytes to the file.
+     * Write bytes to the file
      *
      * @param buffer Input/Output buffer to input bytes from.
-     * @param size Number of bytes to write, at maximum.
+     * @param size Maximum number of bytes to write on input.
+     *             On output, the actual number of bytes written.
      * @param offset Offset inside the file to start writing.
      *
-     * @return Number of bytes written on success, Error on failure.
+     * @return Result code
      */
-    virtual  FileSystem::Error write(IOBuffer & buffer, Size size, Size offset);
+    virtual FileSystem::Result write(IOBuffer & buffer,
+                                     Size & size,
+                                     const Size offset);
 
     /**
      * Retrieve file statistics.
      *
      * @param st Buffer to write statistics to.
      *
-     * @return Error code
+     * @return Result code
      */
-    virtual FileSystem::Error status(FileSystemMessage *msg);
+    virtual FileSystem::Result status(FileSystemMessage *msg);
 
   protected:
 
     /** Type of this file. */
-    FileSystem::FileType m_type;
-
-    /** Access permissions. */
-    FileSystem::FileModes m_access;
-
-    /** Size of the file, in bytes. */
-    Size m_size;
+    const FileSystem::FileType m_type;
 
     /** Owner of the file. */
     UserID m_uid;
@@ -109,8 +111,11 @@ class File
     /** Group of the file. */
     GroupID m_gid;
 
-    /** Device major/minor ID. */
-    DeviceID m_deviceId;
+    /** Access permissions. */
+    FileSystem::FileModes m_access;
+
+    /** Size of the file, in bytes. */
+    Size m_size;
 };
 
 /**

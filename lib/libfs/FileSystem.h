@@ -109,9 +109,6 @@ namespace FileSystem
         IpcError         = -9
     };
 
-    /** May contain a byte count or Result code with an error. */
-    typedef slong Error;
-
     /**
      * All possible filetypes.
      */
@@ -165,7 +162,6 @@ namespace FileSystem
         Size size;          /**< Size of the file in bytes. */
         UserID userID;      /**< User identity. */
         GroupID groupID;    /**< Group identity. */
-        DeviceID deviceID;  /**< Device identity. */
     };
 };
 

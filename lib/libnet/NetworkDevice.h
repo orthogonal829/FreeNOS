@@ -45,7 +45,7 @@ class NetworkDevice : public Device
     /**
      * Constructor
      */
-    NetworkDevice(NetworkServer *server);
+    NetworkDevice(NetworkServer &server);
 
     /**
      * Destructor
@@ -53,11 +53,11 @@ class NetworkDevice : public Device
     virtual ~NetworkDevice();
 
     /**
-     * Initialize the NetworkDevice.
+     * Initialize the device
      *
-     * @return Error code
+     * @return Result code
      */
-    virtual Error initialize();
+    virtual FileSystem::Result initialize();
 
     /**
      * Get maximum packet size
@@ -71,17 +71,18 @@ class NetworkDevice : public Device
      *
      * @param address Ethernet address reference for output
      *
-     * @return Error code
+     * @return Result code
      */
-    virtual Error getAddress(Ethernet::Address *address) = 0;
+    virtual FileSystem::Result getAddress(Ethernet::Address *address) = 0;
 
     /**
      * Set ethernet address
      *
      * @param address New ethernet address to set
-     * @return Error code
+     *
+     * @return Result code
      */
-    virtual Error setAddress(Ethernet::Address *address) = 0;
+    virtual FileSystem::Result setAddress(const Ethernet::Address *address) = 0;
 
     /**
      * Get receive queue
@@ -99,9 +100,9 @@ class NetworkDevice : public Device
      * @param buffer Input/Output buffer to input bytes from.
      * @param size Size of the network packet.
      *
-     * @return Error code
+     * @return Result code
      */
-    virtual Error transmit(NetworkQueue::Packet *packet) = 0;
+    virtual FileSystem::Result transmit(NetworkQueue::Packet *packet) = 0;
 
     /**
      * Process a received network packet.
@@ -109,9 +110,10 @@ class NetworkDevice : public Device
      * @param packet Network packet received by the device
      * @param offset Network packet payload offset
      *
-     * @return Error code
+     * @return Result code
      */
-    virtual Error process(NetworkQueue::Packet *packet, Size offset = 0);
+    virtual FileSystem::Result process(const NetworkQueue::Packet *packet,
+                                       const Size offset = 0);
 
   protected:
 
@@ -122,17 +124,17 @@ class NetworkDevice : public Device
 
     NetworkQueue m_transmit;
 
-    NetworkServer *m_server;
+    NetworkServer &m_server;
 
-    Ethernet *m_eth;
+    Ethernet m_eth;
 
-    ARP *m_arp;
+    ARP m_arp;
 
-    IPV4 *m_ipv4;
+    IPV4 m_ipv4;
 
-    ICMP *m_icmp;
+    ICMP m_icmp;
 
-    UDP *m_udp;
+    UDP m_udp;
 };
 
 /**

@@ -37,7 +37,8 @@
 
 #define CORESRV_PID     0
 #define DATASTORE_PID   1
-#define ROOTFS_PID      2
+#define RECOVERY_PID    2
+#define ROOTFS_PID      3
 
 /**
  * @}

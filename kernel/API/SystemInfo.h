@@ -39,7 +39,7 @@ struct SystemInformation;
  */
 inline API::Result SystemInfo(SystemInformation *info)
 {
-    return trapKernel1(API::SystemInfoNumber, (Address) info);
+    return (API::Result) trapKernel1(API::SystemInfoNumber, (Address) info);
 }
 
 /**
@@ -87,6 +87,12 @@ typedef struct SystemInformation
 
     /** Boot commandline. */
     char cmdline[64];
+
+    /** Physical start address of the kernel program */
+    Address kernelAddress;
+
+    /** Size of the kernel program in bytes */
+    Size kernelSize;
 
     /** Total and available memory in bytes. */
     Size memorySize, memoryAvail;

@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include "NetworkClient.h"
 #include "ARP.h"
 #include "ARPSocket.h"
@@ -37,12 +38,12 @@ NetworkClient::~NetworkClient()
 
 NetworkClient::Result NetworkClient::initialize()
 {
-    FileSystemClient filesystem;
+    const FileSystemClient filesystem;
     Size numberOfMounts = 0;
 
     // Get a list of mounts
-    FileSystemMount *mounts = filesystem.getFileSystems(numberOfMounts);
-    FileSystemMount *match = 0;
+    const FileSystemMount *mounts = filesystem.getFileSystems(numberOfMounts);
+    const FileSystemMount *match = 0;
     Size matchLen = 0;
 
     // Find closest matching device
@@ -67,16 +68,18 @@ NetworkClient::Result NetworkClient::initialize()
             }
         }
     }
+
     if (!match)
     {
         ERROR("network device not found: " << *m_deviceName);
         return IOError;
     }
+
     m_deviceName = match->path;
     return Success;
 }
 
-NetworkClient::Result NetworkClient::createSocket(NetworkClient::SocketType type,
+NetworkClient::Result NetworkClient::createSocket(const NetworkClient::SocketType type,
                                                   int *sock)
 {
     String path = m_deviceName;
@@ -98,29 +101,36 @@ NetworkClient::Result NetworkClient::createSocket(NetworkClient::SocketType type
         default:
             return NotFound;
     }
-    if ((*sock = ::open(*path, O_RDWR)) != -1)
-        return Success;
-    else
+
+    if ((*sock = ::open(*path, O_RDWR)) == -1)
+    {
+        ERROR("failed to create socket: " << strerror(errno));
         return IOError;
+    }
+
+    return Success;
 }
 
-NetworkClient::Result NetworkClient::connectSocket(int sock, IPV4::Address addr, u16 port)
+NetworkClient::Result NetworkClient::connectSocket(const int sock,
+                                                   const IPV4::Address addr,
+                                                   const u16 port)
 {
     DEBUG("");
     return writeSocketInfo(sock, addr, port, Connect);
 }
 
-NetworkClient::Result NetworkClient::bindSocket(int sock, IPV4::Address addr, u16 port)
+NetworkClient::Result NetworkClient::bindSocket(const int sock,
+                                                const IPV4::Address addr,
+                                                const u16 port)
 {
     DEBUG("");
     return writeSocketInfo(sock, addr, port, Listen);
 }
 
-NetworkClient::Result NetworkClient::writeSocketInfo(
-    int sock,
-    IPV4::Address addr,
-    u16 port,
-    NetworkClient::SocketAction action)
+NetworkClient::Result NetworkClient::writeSocketInfo(const int sock,
+                                                     const IPV4::Address addr,
+                                                     const u16 port,
+                                                     const NetworkClient::SocketAction action)
 {
     char buf[64];
 
@@ -128,9 +138,12 @@ NetworkClient::Result NetworkClient::writeSocketInfo(
 
     // Read socket factory. The factory will create
     // a new socket for us. We need to read the new file path
-    Error r = ::read(sock, buf, sizeof(buf));
+    int r = ::read(sock, buf, sizeof(buf));
     if (r < 0)
+    {
+        ERROR("failed to read from socket factory: " << strerror(errno));
         return IOError;
+    }
 
     // Update the file descriptor path
     FileDescriptor *fd = &getFiles()[sock];
@@ -144,14 +157,17 @@ NetworkClient::Result NetworkClient::writeSocketInfo(
 
     r = ::write(sock, &info, sizeof(info));
     if (r < 0)
+    {
+        ERROR("failed to write socket info: " << strerror(errno));
         return IOError;
+    }
 
     // Done
     return Success;
 }
 
 
-NetworkClient::Result NetworkClient::close(int sock)
+NetworkClient::Result NetworkClient::close(const int sock)
 {
     ::close(sock);
     return Success;

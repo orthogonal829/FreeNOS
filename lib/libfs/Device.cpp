@@ -17,7 +17,7 @@
 
 #include "Device.h"
 
-Device::Device(FileSystem::FileType type)
+Device::Device(const FileSystem::FileType type)
     : File(type)
 {
 }
@@ -31,12 +31,12 @@ const String & Device::getIdentifier() const
     return m_identifier;
 }
 
-FileSystem::Error Device::initialize()
+FileSystem::Result Device::initialize()
 {
     return FileSystem::Success;
 }
 
-FileSystem::Error Device::interrupt(Size vector)
+FileSystem::Result Device::interrupt(const Size vector)
 {
     return FileSystem::Success;
 }

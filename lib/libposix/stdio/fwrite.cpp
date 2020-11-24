@@ -15,39 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LIBPOSIX_RUNTIME_H
-#define __LIBPOSIX_RUNTIME_H
+#include <unistd.h>
+#include <sys/types.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "errno.h"
 
-#include <Macros.h>
-#include <Types.h>
+size_t fwrite(const void *ptr, size_t size,
+              size_t nitems, FILE *stream)
+{
+    size_t i;
+    char *buf = (char *) ptr;
 
-/**
- * @addtogroup lib
- * @{
- *
- * @addtogroup libposix
- * @{
- */
+    // Write items
+    for (i = 0; i < nitems; i++)
+    {
+        ssize_t num = write(stream->fd, buf, size);
+        if (num < 0 || (size_t)num != size)
+            break;
 
-/** Maximum size of each argument. */
-#define ARGV_SIZE  128
+        buf += size;
+    }
 
-/** Number of arguments at maximum. */
-#define ARGV_COUNT (PAGESIZE / ARGV_SIZE)
-
-/**
- * Program entry point.
- *
- * @param argc Argument count.
- * @param argv Argument values.
- *
- * @return Exit status.
- */
-int main(int argc, char **argv);
-
-/**
- * @}
- * @}
- */
-
-#endif /* __LIBPOSIX_RUNTIME_H */
+    // Done
+    return i;
+}

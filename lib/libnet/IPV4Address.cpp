@@ -17,7 +17,6 @@
 
 #include <Log.h>
 #include <String.h>
-#include <errno.h>
 #include "IPV4Address.h"
 
 IPV4Address::IPV4Address(IPV4 *ipv4)
@@ -29,7 +28,9 @@ IPV4Address::~IPV4Address()
 {
 }
 
-Error IPV4Address::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result IPV4Address::read(IOBuffer & buffer,
+                                     Size & size,
+                                     const Size offset)
 {
     IPV4::Address addr;
     String str;
@@ -38,19 +39,24 @@ Error IPV4Address::read(IOBuffer & buffer, Size size, Size offset)
     str << IPV4::toString(addr);
 
     if (offset >= str.length())
-        return 0;
+    {
+        size = 0;
+        return FileSystem::Success;
+    }
 
     DEBUG("address = " << *str);
 
     buffer.write(*str, str.length());
-    return str.length();
+    size = str.length();
+    return FileSystem::Success;
 }
 
-Error IPV4Address::write(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result IPV4Address::write(IOBuffer & buffer,
+                                      Size & size,
+                                      const Size offset)
 {
     IPV4::Address addr;
     char tmp[32];
-    Error r;
 
     buffer.read(tmp, size < sizeof(tmp) ? size : sizeof(tmp));
     tmp[sizeof(tmp) - 1] = 0;
@@ -60,11 +66,10 @@ Error IPV4Address::write(IOBuffer & buffer, Size size, Size offset)
     // Try to convert text dotted notation to IPV4::Address
     addr = IPV4::toAddress(tmp);
     if (!addr)
-        return ERANGE;
+    {
+        return FileSystem::InvalidArgument;
+    }
 
     // Set the address
-    if ((r = m_ipv4->setAddress(&addr)) == ESUCCESS)
-        return size;
-    else
-        return r;
+    return m_ipv4->setAddress(&addr);
 }

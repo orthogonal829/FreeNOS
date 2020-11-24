@@ -169,6 +169,12 @@
  */
 
 /**
+ * @defgroup libruntime libruntime
+ *
+ * This library provides basic runtime support needed to start a program from a main() function.
+ */
+
+/**
  * @defgroup server server
  *
  * Servers are programs that provide a part of the operating system in userspace, for example device drivers or filesystems.
@@ -211,9 +217,9 @@
  */
 
 /**
- * @defgroup grovepi grovepi
+ * @defgroup recovery RecoveryServer
  *
- * The GrovePI is an I/O extension platform for the Raspberry Pi 1/2/3.
+ * Provides fault tolerance to servers by restarting on errors (recovery).
  */
 
 /**

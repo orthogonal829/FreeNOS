@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Niek Linnenbank
+ * Copyright (C) 2020 Niek Linnenbank
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,47 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LIBARCH_KERNELLOG_H
-#define __LIBARCH_KERNELLOG_H
+#include <FreeNOS/User.h>
+#include <KernelLog.h>
+#include "RecoveryServer.h"
 
-#ifndef __HOST__
-#include "Log.h"
-
-/**
- * @addtogroup lib
- * @{
- *
- * @addtogroup libarch
- * @{
- */
-
-/**
- * Log to the kernel using PrivExec().
- */
-class KernelLog : public Log
+int main(int argc, char **argv)
 {
-  public:
-
-    /**
-     * Constructor
-     */
-    KernelLog();
-
-    /**
-     * Write using PrivExec()
-     */
-    virtual void write(const char *str);
-
-    /**
-     * Terminate the program using exit()
-     */
-    virtual void terminate() const;
-};
-
-/**
- * @}
- * @}
- */
-
-#endif /* __HOST__ */
-#endif /* __LIBARCH_KERNELLOG_H */
+    KernelLog log;
+    RecoveryServer server;
+    return server.run();
+}

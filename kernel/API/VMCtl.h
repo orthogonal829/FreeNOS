@@ -38,6 +38,7 @@ typedef enum MemoryOperation
     MapSparse,
     UnMap,
     Release,
+    ReleaseSections,
     LookupVirtual,
     Access,
     ReserveMem,
@@ -56,10 +57,11 @@ MemoryOperation;
  *
  * @return API::Success on success and other API::ErrorCode on failure.
  */
-inline API::Result VMCtl(ProcessID procID, MemoryOperation op,
+inline API::Result VMCtl(const ProcessID procID,
+                         const MemoryOperation op,
                          Memory::Range *range = ZERO)
 {
-    return trapKernel3(API::VMCtlNumber, procID, op, (Address) range);
+    return (API::Result) trapKernel3(API::VMCtlNumber, procID, op, (Address) range);
 }
 
 /**
@@ -73,7 +75,9 @@ inline API::Result VMCtl(ProcessID procID, MemoryOperation op,
  * @{
  */
 
-extern API::Result VMCtlHandler(ProcessID procID, MemoryOperation op, Memory::Range *range);
+extern API::Result VMCtlHandler(const ProcessID procID,
+                                const MemoryOperation op,
+                                Memory::Range *range);
 
 /**
  * @}

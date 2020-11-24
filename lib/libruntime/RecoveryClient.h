@@ -15,50 +15,62 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LIB_LIBRT_DATASTORECLIENT_H
-#define __LIB_LIBRT_DATASTORECLIENT_H
+#ifndef __LIB_LIBRUNTIME_RECOVERYCLIENT_H
+#define __LIB_LIBRUNTIME_RECOVERYCLIENT_H
 
 #include <FreeNOS/API/ProcessID.h>
 #include <Types.h>
-#include <Memory.h>
-#include <Datastore.h>
+#include "Recovery.h"
+
+struct RecoveryMessage;
 
 /**
  * @addtogroup lib
  * @{
  *
- * @addtogroup librt
+ * @addtogroup libruntime
  * @{
  */
 
 /**
- * Datastore client
+ * RecoveryClient provides a simple interface to the local core's RecoveryServer
  *
- * Provides a simple interface to the datastore server
+ * @see RecoveryServer
  */
-class DatastoreClient
+class RecoveryClient
 {
   public:
 
     /**
      * Class constructor function.
      *
-     * @param pid (Optional) Process identifier of the datastore server
+     * @param pid Optional ProcessID of the RecoveryServer.
      */
-    DatastoreClient(const ProcessID pid = DATASTORE_PID);
+    RecoveryClient(const ProcessID pid = RECOVERY_PID);
 
     /**
-     * Add a new buffer.
+     * Restart a process.
      *
-     * If the buffer already exists, it is re-used.
+     * @param pid Process identifier of the program to restart.
+     *
+     * @return Result code
      */
-    Datastore::Result registerBuffer(const char *key,
-                                     void *buffer,
-                                     const Size size) const;
+    Recovery::Result restartProcess(const ProcessID pid) const;
 
   private:
 
-    /** Process identifier of the datastore server */
+    /**
+     * Send an IPC request to the RecoveryServer
+     *
+     * @param msg Reference to the RecoveryMessage to send
+     *
+     * @return Result code
+     */
+    Recovery::Result request(RecoveryMessage &msg) const;
+
+  private:
+
+    /** ProcessID of the RecoveryServer */
     const ProcessID m_pid;
 };
 
@@ -67,4 +79,4 @@ class DatastoreClient
  * @}
  */
 
-#endif /* __LIB_LIBRT_DATASTORECLIENT_H */
+#endif /* __LIB_LIBRUNTIME_RECOVERYCLIENT_H */

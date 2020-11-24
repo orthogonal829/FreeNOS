@@ -40,6 +40,12 @@
  */
 class USBDevice : public Device
 {
+  private:
+
+    static const Size MaxInterfaces = 64u;
+    static const Size MaxEndpoints = 64u;
+    static const Size MaxStrings = 64u;
+
   public:
 
     /**
@@ -53,11 +59,11 @@ class USBDevice : public Device
     virtual ~USBDevice();
 
     /**
-     * Initialize the USBDevice.
+     * Initialize the device
      *
      * @return Result code
      */
-    virtual FileSystem::Error initialize();
+    virtual FileSystem::Result initialize();
 
   protected:
 
@@ -66,7 +72,7 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error getDeviceDescriptor(USBDescriptor::Device *desc,
+    Error getDeviceDescriptor(USBDescriptor::Device *desc,
                               Size size = sizeof(USBDescriptor::Device));
 
     /**
@@ -74,7 +80,7 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error getConfigDescriptor(USBDescriptor::Configuration *desc,
+    Error getConfigDescriptor(USBDescriptor::Configuration *desc,
                               Size size = sizeof(USBDescriptor::Configuration));
 
     /**
@@ -82,35 +88,35 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error getInterfaceDescriptor(USBDescriptor::Interface *desc);
+    Error getInterfaceDescriptor(USBDescriptor::Interface *desc);
 
     /**
      * Get endpoint descriptor.
      *
      * @return Result code
      */
-    FileSystem::Error getEndpointDescriptor(u8 endpointId, USBDescriptor::Endpoint *desc);
+    Error getEndpointDescriptor(u8 endpointId, USBDescriptor::Endpoint *desc);
 
     /**
      * Set device address.
      *
      * @return Result code
      */
-    FileSystem::Error setAddress(u8 address);
+    Error setAddress(u8 address);
 
     /**
      * Activate a configuration.
      *
      * @return Result code
      */
-    FileSystem::Error setConfiguration(u8 configId);
+    Error setConfiguration(u8 configId);
 
     /**
      * Send a control message.
      *
      * @return Result code
      */
-    FileSystem::Error controlMessage(u8 request,
+    Error controlMessage(u8 request,
                          const USBTransfer::Direction direction,
                          const USBTransfer::RequestType type,
                          const USBTransfer::Recipient recipient,
@@ -124,7 +130,7 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error transfer(const USBTransfer::Type type,
+    Error transfer(const USBTransfer::Type type,
                    const USBTransfer::Direction direction,
                    Address endpointId,
                    void *buffer,
@@ -136,7 +142,7 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error beginTransfer(const USBTransfer::Type type,
+    Error beginTransfer(const USBTransfer::Type type,
                         const USBTransfer::Direction direction,
                         Address endpointId,
                         void *buffer,
@@ -149,14 +155,14 @@ class USBDevice : public Device
      *
      * @return Result code
      */
-    FileSystem::Error finishTransfer(FileSystemMessage *msg);
+    Error finishTransfer(FileSystemMessage *msg);
 
     /**
      * Submit a USB transfer to the Host controller.
      *
      * @return Result code
      */
-    FileSystem::Error submit(USBMessage & msg);
+    Error submit(USBMessage & msg);
 
   protected:
 
@@ -182,13 +188,13 @@ class USBDevice : public Device
     USBDescriptor::Configuration *m_config;
 
     /** USB interface descriptors. */
-    Index<USBDescriptor::Interface> m_interfaces;
+    Index<USBDescriptor::Interface, MaxInterfaces> m_interfaces;
 
     /** USB endpoint descriptors. */
-    Index<USBDescriptor::Endpoint> m_endpoints;
+    Index<USBDescriptor::Endpoint, MaxEndpoints> m_endpoints;
 
     /** USB string descriptor */
-    Index<USBDescriptor::String> m_strings;
+    Index<USBDescriptor::String, MaxStrings> m_strings;
 
     /**
      * Contains endpoint to saved packet id mapping.

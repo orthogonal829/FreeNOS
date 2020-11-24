@@ -47,20 +47,22 @@ Keyboard::Keyboard() : Device(FileSystem::CharacterDeviceFile), shiftState(ZERO)
     m_identifier << "keyboard0";
 }
 
-FileSystem::Error Keyboard::initialize()
+FileSystem::Result Keyboard::initialize()
 {
     return FileSystem::Success;
 }
 
-FileSystem::Error Keyboard::interrupt(Size vector)
+FileSystem::Result Keyboard::interrupt(const Size vector)
 {
     pending = true;
     return FileSystem::Success;
 }
 
-FileSystem::Error Keyboard::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result Keyboard::read(IOBuffer & buffer,
+                                  Size & size,
+                                  const Size offset)
 {
-    FileSystem::Error ret = FileSystem::RetryAgain;
+    Size bytes = 0;
 
     // Do we have any new key events?
     if (pending)
@@ -81,11 +83,19 @@ FileSystem::Error Keyboard::read(IOBuffer & buffer, Size size, Size offset)
         {
             // Write to buffer
             buffer.write((void *) &keymap[keycode & 0x7f][shiftState], 1);
-            ret = 1;
+            bytes = 1;
         }
         // Re-enable interrupt
         ProcessCtl(SELF, EnableIRQ, PS2_IRQ);
     }
 
-    return ret;
+    if (bytes > 0)
+    {
+        size = bytes;
+        return FileSystem::Success;
+    }
+    else
+    {
+        return FileSystem::RetryAgain;
+    }
 }

@@ -43,7 +43,7 @@ class NetworkSocket : public File
      *
      * @param packetSize Size of each network packet
      */
-    NetworkSocket(Size packetSize);
+    NetworkSocket(const Size packetSize);
 
     /**
      * Destructor
@@ -53,14 +53,13 @@ class NetworkSocket : public File
     /**
      * Process incoming network packet.
      *
-     * @return Error code
+     * @param pkt Incoming packet pointer
+     *
+     * @return Result code
      */
-    virtual Error process(NetworkQueue::Packet *pkt) = 0;
+    virtual FileSystem::Result process(const NetworkQueue::Packet *pkt) = 0;
 
   protected:
-
-    /** Process which owns the socket */
-    ProcessID m_pid;
 
     /** Receive queue */
     NetworkQueue m_receive;

@@ -18,10 +18,9 @@
 #include "DeviceServer.h"
 
 DeviceServer::DeviceServer(const char *path)
-    : FileSystemServer(path)
+    : FileSystemServer(new Directory(), path)
 {
     m_interrupts.fill(ZERO);
-    setRoot(new Directory());
 }
 
 DeviceServer::~DeviceServer()
@@ -36,12 +35,12 @@ FileSystem::Result DeviceServer::initialize()
         Device *dev = m_devices[i];
         if (dev != ZERO)
         {
-            const FileSystem::Error result = dev->initialize();
+            const FileSystem::Result result = dev->initialize();
             if (result != FileSystem::Success)
             {
                 ERROR("failed to initialize device " << (*dev->getIdentifier()) <<
                       ": result = " << (int)result);
-                return FileSystem::IOError;
+                return result;
             }
         }
     }

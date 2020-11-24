@@ -16,7 +16,6 @@
  */
 
 #include <stdlib.h>
-#include <errno.h>
 #include "Ethernet.h"
 #include "UDP.h"
 #include "UDPSocket.h"
@@ -38,13 +37,17 @@ const u16 UDPSocket::getPort() const
     return m_port;
 }
 
-Error UDPSocket::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result UDPSocket::read(IOBuffer & buffer,
+                                   Size & size,
+                                   const Size offset)
 {
     DEBUG("");
 
     NetworkQueue::Packet *pkt = m_queue.pop();
     if (!pkt)
+    {
         return FileSystem::RetryAgain;
+    }
 
     IPV4::Header *ipHdr = (IPV4::Header *)(pkt->data + sizeof(Ethernet::Header));
     UDP::Header *udpHdr = (UDP::Header *)(pkt->data + sizeof(Ethernet::Header) + sizeof(IPV4::Header));
@@ -62,10 +65,14 @@ Error UDPSocket::read(IOBuffer & buffer, Size size, Size offset)
     Size sz = size > payloadSize ? payloadSize : size;
     buffer.write(udpHdr+1, sz, sizeof(info));
     m_queue.release(pkt);
-    return sz + sizeof(info);
+    size = sz + sizeof(info);
+
+    return FileSystem::Success;
 }
 
-Error UDPSocket::write(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result UDPSocket::write(IOBuffer & buffer,
+                                    Size & size,
+                                    const Size offset)
 {
     DEBUG("");
 
@@ -79,17 +86,15 @@ Error UDPSocket::write(IOBuffer & buffer, Size size, Size offset)
 
         DEBUG("addr =" << m_info.address << " port = " << m_info.port);
 
-        Error r = m_udp->bind(this, m_info.port);
-        if (r != ESUCCESS)
-            return r;
-        else
-            return size;
+        return m_udp->bind(this, m_info.port);
     }
     else
+    {
         return m_udp->sendPacket(&m_info, buffer, size);
+    }
 }
 
-Error UDPSocket::process(NetworkQueue::Packet *pkt)
+FileSystem::Result UDPSocket::process(const NetworkQueue::Packet *pkt)
 {
     DEBUG("");
 
@@ -97,15 +102,12 @@ Error UDPSocket::process(NetworkQueue::Packet *pkt)
     if (!buf)
     {
         ERROR("udp socket queue full");
-        return EIO;
+        return FileSystem::IOError;
     }
+
     buf->size = pkt->size;
     MemoryBlock::copy(buf->data, pkt->data, pkt->size);
     m_queue.push(buf);
-    return ESUCCESS;
-}
 
-void UDPSocket::error(Error err)
-{
-    DEBUG("");
+    return FileSystem::Success;
 }

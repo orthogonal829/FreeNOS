@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <Log.h>
 #include <ChannelClient.h>
 #include "FileSystemMessage.h"
 #include "FileSystemClient.h"
@@ -32,7 +33,7 @@ inline FileSystem::Result FileSystemClient::request(const char *path,
                                                     FileSystemMessage &msg) const
 {
     const ProcessID mnt = m_pid == ANY ? findMount(path) : m_pid;
-    char fullpath[PATHLEN];
+    char fullpath[FileSystemPath::MaximumLength];
 
     // Use the current directory as prefix for relative paths
     if (path[0] != '/' && m_currentDirectory != NULL)
@@ -55,8 +56,11 @@ inline FileSystem::Result FileSystemClient::request(const char *path,
 inline FileSystem::Result FileSystemClient::request(const ProcessID pid,
                                                     FileSystemMessage &msg) const
 {
-    if (ChannelClient::instance->syncSendReceive(&msg, sizeof(msg), pid) != ChannelClient::Success)
+    ChannelClient::Result r = ChannelClient::instance()->syncSendReceive(&msg, sizeof(msg), pid);
+    if (r != ChannelClient::Success)
     {
+        ERROR("failed to send request to PID " << pid <<
+              " for path " << msg.path << ": result = " << (int) r);
         return FileSystem::IpcError;
     }
     else if (msg.result != FileSystem::RedirectRequest)
@@ -82,8 +86,11 @@ inline FileSystem::Result FileSystemClient::request(const ProcessID pid,
     }
 
     msg.type = ChannelMessage::Request;
-    if (ChannelClient::instance->syncSendReceive(&msg, sizeof(msg), msg.pid) != ChannelClient::Success)
+    r = ChannelClient::instance()->syncSendReceive(&msg, sizeof(msg), msg.pid);
+    if (r != ChannelClient::Success)
     {
+        ERROR("failed to redirect request to PID " << msg.pid <<
+              " for path " << msg.path << ": result = " << (int) r);
         return FileSystem::IpcError;
     }
 
@@ -95,7 +102,7 @@ ProcessID FileSystemClient::findMount(const char *path) const
 {
     FileSystemMount *m = ZERO;
     Size length = 0;
-    char fullpath[PATHLEN];
+    char fullpath[FileSystemPath::MaximumLength];
 
     // Use the current directory as prefix for relative paths
     if (path[0] != '/' && m_currentDirectory != NULL)
@@ -157,8 +164,7 @@ void FileSystemClient::setCurrentDirectory(String *directory)
 
 FileSystem::Result FileSystemClient::createFile(const char *path,
                                                 const FileSystem::FileType type,
-                                                const FileSystem::FileModes mode,
-                                                const DeviceID deviceId) const
+                                                const FileSystem::FileModes mode) const
 {
     FileSystemMessage msg;
     msg.type     = ChannelMessage::Request;
@@ -166,7 +172,6 @@ FileSystem::Result FileSystemClient::createFile(const char *path,
     msg.path     = (char *)path;
     msg.filetype = type;
     msg.mode     = mode;
-    msg.deviceID = deviceId;
 
     return request(path, msg);
 }

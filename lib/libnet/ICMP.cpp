@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
+#include <ByteOrder.h>
 #include "NetworkServer.h"
 #include "NetworkProtocol.h"
 #include "ICMP.h"
@@ -23,49 +23,53 @@
 #include "ICMPSocket.h"
 #include "IPV4.h"
 
-ICMP::ICMP(NetworkServer *server,
-           NetworkDevice *device)
-    : NetworkProtocol(server, device)
+ICMP::ICMP(NetworkServer &server,
+           NetworkDevice &device,
+           NetworkProtocol &parent)
+    : NetworkProtocol(server, device, parent)
 {
-    m_ipv4  = ZERO;
 }
 
 ICMP::~ICMP()
 {
 }
 
-void ICMP::setIP(::IPV4 *ip)
-{
-    m_ipv4 = ip;
-}
-
-Error ICMP::initialize()
+FileSystem::Result ICMP::initialize()
 {
     DEBUG("");
+
     m_factory = new ICMPFactory(this);
-    m_server->registerFile(this, "/icmp");
-    m_server->registerFile(m_factory, "/icmp/factory");
-    return ESUCCESS;
+    m_server.registerDirectory(this, "/icmp");
+    m_server.registerFile(m_factory, "/icmp/factory");
+
+    return FileSystem::Success;
 }
 
-Error ICMP::process(NetworkQueue::Packet *pkt, Size offset)
+FileSystem::Result ICMP::process(const NetworkQueue::Packet *pkt,
+                                 const Size offset)
 {
-    IPV4::Header *iphdr = (IPV4::Header *) (pkt->data + offset - sizeof(IPV4::Header));
-    Header *hdr = (Header *) (pkt->data + offset);
-    IPV4::Address source = be32_to_cpu(iphdr->source);
+    const IPV4::Header *iphdr = (const IPV4::Header *) (pkt->data + offset - sizeof(IPV4::Header));
+    const Header *hdr = (const Header *) (pkt->data + offset);
+    const IPV4::Address source = readBe32(&iphdr->source);
 
     DEBUG("source = " << (uint)source << " type = " << hdr->type << " code = " << hdr->code << " id = " << hdr->id);
 
     switch (hdr->type)
     {
-        case EchoRequest: {
+        case EchoRequest:
+        {
             DEBUG("request");
-            hdr->type     = EchoReply;
-            hdr->checksum = 0;
-            hdr->checksum = checksum(hdr);
-            return sendPacket(source, hdr);
+
+            Header reply;
+            MemoryBlock::copy(&reply, hdr, sizeof(reply));
+            reply.type = EchoReply;
+            write16(&reply.checksum, 0);
+            write16(&reply.checksum, checksum(&reply));
+
+            return sendPacket(source, &reply);
         }
-        case EchoReply: {
+        case EchoReply:
+        {
             DEBUG("reply");
 
             for (Size i = 0; i < m_sockets.size(); i++)
@@ -77,54 +81,70 @@ Error ICMP::process(NetworkQueue::Packet *pkt, Size offset)
             break;
         }
     }
-    return ESUCCESS;
+
+    return FileSystem::Success;
 }
 
 ICMPSocket * ICMP::createSocket(String & path)
 {
+    Size pos = 0;
+
     DEBUG("");
 
+    // Allocate socket
     ICMPSocket *sock = new ICMPSocket(this);
     if (!sock)
-        return ZERO;
-
-    int pos = m_sockets.insert(*sock);
-    if (pos == -1)
     {
+        ERROR("failed to allocate ICMP socket");
+        return ZERO;
+    }
+
+    // Insert to sockets array
+    if (!m_sockets.insert(pos, sock))
+    {
+        ERROR("failed to insert ICMP socket");
         delete sock;
         return ZERO;
     }
     String filepath;
     filepath << "/icmp/" << pos;
 
-    path << m_server->getMountPath() << filepath;
-    m_server->registerFile(sock, *filepath);
+    // Add socket to NetworkServer as a file
+    path << m_server.getMountPath() << filepath;
+    const FileSystem::Result result = m_server.registerFile(sock, *filepath);
+    if (result != FileSystem::Success)
+    {
+        ERROR("failed to register ICMP socket to NetworkServer: result = " << (int) result);
+        m_sockets.remove(pos);
+        delete sock;
+        return ZERO;
+    }
+
     return sock;
 }
 
-Error ICMP::sendPacket(IPV4::Address ip, ICMP::Header *header)
+FileSystem::Result ICMP::sendPacket(const IPV4::Address ip,
+                                    const ICMP::Header *header)
 {
     DEBUG("");
 
-    NetworkQueue::Packet *pkt;
-    Error r;
-
-    // Get a fresh IP packet
-    r = m_ipv4->getTransmitPacket(
-        &pkt, ip, IPV4::ICMP, sizeof(Header)
-    );
-    if (r != ESUCCESS)
-        return r;
+    // Get a fresh packet
+    NetworkQueue::Packet *pkt = m_parent.getTransmitPacket(&ip, sizeof(ip),
+                                                           NetworkProtocol::ICMP, sizeof(Header));
+    if (pkt == ZERO)
+    {
+        return FileSystem::RetryAgain;
+    }
 
     // Fill payload
     MemoryBlock::copy(pkt->data + pkt->size, header, sizeof(ICMP::Header));
     pkt->size += sizeof(ICMP::Header);
 
     // Transmit the packet
-    return m_device->transmit(pkt);
+    return m_device.transmit(pkt);
 }
 
-const u16 ICMP::checksum(Header *header)
+const u16 ICMP::checksum(const Header *header)
 {
     return IPV4::checksum(header, sizeof(*header));
 }

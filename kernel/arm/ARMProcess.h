@@ -63,12 +63,12 @@ class ARMProcess : public Process
      */
     const CPUState * cpuState() const;
 
-    /**
-     * Set wait result.
+   /**
+     * Complete waiting for another Process.
      *
-     * @param result Exit status of the other process
+     * @param result Exit code of the other process
      */
-    virtual void setWaitResult(uint result);
+    virtual Result join(const uint result);
 
     /**
      * Initialize the Process.
@@ -79,6 +79,13 @@ class ARMProcess : public Process
      * @return Result code
      */
     virtual Result initialize();
+
+    /**
+     * Restart execution at the given entry point.
+     *
+     * @param entry Address to begin execution.
+     */
+    virtual void reset(const Address entry);
 
     /**
      * Allow the Process to run on the CPU.

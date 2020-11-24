@@ -40,23 +40,33 @@ PseudoFile::PseudoFile(const char *str)
 PseudoFile::~PseudoFile()
 {
     if (m_buffer)
-        delete m_buffer;
+    {
+        delete[] m_buffer;
+    }
 }
 
-FileSystem::Error PseudoFile::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result PseudoFile::read(IOBuffer & buffer,
+                                    Size & size,
+                                    const Size offset)
 {
     // Bounds checking
     if (offset >= m_size)
-        return 0;
+    {
+        size = 0;
+        return FileSystem::Success;
+    }
 
     // How much bytes to copy?
-    Size bytes = m_size - offset > size ? size : m_size - offset;
+    const Size bytes = m_size - offset > size ? size : m_size - offset;
+    size = bytes;
 
     // Copy the buffers
     return buffer.write(m_buffer + offset, bytes);
 }
 
-FileSystem::Error PseudoFile::write(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result PseudoFile::write(IOBuffer & buffer,
+                                     Size & size,
+                                     const Size offset)
 {
     // Check for the buffer size
     if (!m_buffer || m_size < (size + offset))
@@ -70,13 +80,14 @@ FileSystem::Error PseudoFile::write(IOBuffer & buffer, Size size, Size offset)
         if (m_buffer)
         {
             MemoryBlock::copy(new_buffer, m_buffer, m_size);
-            delete m_buffer;
+            delete[] m_buffer;
         }
+
         // Assign buffer
         m_buffer = new_buffer;
         m_size = size+offset;
     }
+
     // Copy the input data in the current buffer
-    buffer.read(m_buffer + offset, size);
-    return size;
+    return buffer.read(m_buffer + offset, size);
 }

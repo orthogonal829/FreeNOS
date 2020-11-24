@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Niek Linnenbank
+ * Copyright (C) 2020 Niek Linnenbank
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __HOST__
-#include <FreeNOS/User.h>
-#include "KernelLog.h"
+#include "SerialDevice.h"
 
-KernelLog::KernelLog()
-    : Log()
+SerialDevice::SerialDevice(const u32 irq)
+    : Device(FileSystem::CharacterDeviceFile)
+    , AbstractFactory<SerialDevice>()
+    , m_irq(irq)
 {
 }
 
-void KernelLog::write(const char *str)
+u32 SerialDevice::getIrq() const
 {
-    PrivExec(WriteConsole, (Address) str);
+    return m_irq;
 }
-
-void KernelLog::terminate() const
-{
-    PrivExec(Panic);
-    ProcessCtl(SELF, KillPID, 1);
-}
-
-#endif /* __HOST__ */

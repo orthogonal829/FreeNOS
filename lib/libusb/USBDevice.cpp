@@ -51,17 +51,18 @@ USBDevice::~USBDevice()
     delete m_config;
 }
 
-FileSystem::Error USBDevice::initialize()
+FileSystem::Result USBDevice::initialize()
 {
     DEBUG("");
 
+    Size idx = 0;
     Address actualId = m_id;
 
     // Try to open the USB transfer file on the USB host controller
     if ((m_transferFile = ::open(*m_transferFilePath, O_RDWR)) < 0)
     {
         ERROR("failed to open " << *m_transferFilePath << ": " << strerror(errno) << "\n");
-        return errno;
+        return FileSystem::IOError;
     }
     DEBUG("opened: " << *m_transferFilePath);
 
@@ -155,7 +156,7 @@ FileSystem::Error USBDevice::initialize()
             case USBDescriptor::InterfaceType: {
                 DEBUG("::Interface at " << offset);
                 USBDescriptor::Interface *iface = (USBDescriptor::Interface *) (desc + offset);
-                m_interfaces.insert(*iface);
+                m_interfaces.insert(idx, iface);
                 offset += iface->length;
                 break;
             }
@@ -163,14 +164,14 @@ FileSystem::Error USBDevice::initialize()
                 USBDescriptor::Endpoint *ep = (USBDescriptor::Endpoint *) (desc + offset);
                 DEBUG("::Endpoint at " << offset << " addr = " << (ep->endpointAddress & 0xf) <<
                       " dir = " << (ep->endpointAddress >> 7) << " attr = " << ((ep->attributes) & 0x3));
-                m_endpoints.insert(*ep);
+                m_endpoints.insert(idx, ep);
                 offset += ep->length;
                 break;
             }
             case USBDescriptor::StringType: {
                 DEBUG("::String at " << offset);
                 USBDescriptor::String *str = (USBDescriptor::String *) (desc + offset);
-                m_strings.insert(*str);
+                m_strings.insert(idx, str);
                 offset += str->length;
                 break;
             }
@@ -186,10 +187,11 @@ FileSystem::Error USBDevice::initialize()
             }
         }
     }
+
     return FileSystem::Success;
 }
 
-FileSystem::Error USBDevice::getDeviceDescriptor(USBDescriptor::Device *desc, Size size)
+Error USBDevice::getDeviceDescriptor(USBDescriptor::Device *desc, Size size)
 {
     DEBUG("");
 
@@ -201,7 +203,7 @@ FileSystem::Error USBDevice::getDeviceDescriptor(USBDescriptor::Device *desc, Si
                           desc, size);
 }
 
-FileSystem::Error USBDevice::getConfigDescriptor(USBDescriptor::Configuration *desc, Size size)
+Error USBDevice::getConfigDescriptor(USBDescriptor::Configuration *desc, Size size)
 {
     DEBUG("");
 
@@ -213,7 +215,7 @@ FileSystem::Error USBDevice::getConfigDescriptor(USBDescriptor::Configuration *d
                           desc, size);
 }
 
-FileSystem::Error USBDevice::getInterfaceDescriptor(USBDescriptor::Interface *desc)
+Error USBDevice::getInterfaceDescriptor(USBDescriptor::Interface *desc)
 {
     DEBUG("");
 
@@ -225,7 +227,7 @@ FileSystem::Error USBDevice::getInterfaceDescriptor(USBDescriptor::Interface *de
                           desc, sizeof(*desc));
 }
 
-FileSystem::Error USBDevice::getEndpointDescriptor(u8 endpointId, USBDescriptor::Endpoint *desc)
+Error USBDevice::getEndpointDescriptor(u8 endpointId, USBDescriptor::Endpoint *desc)
 {
     DEBUG("endpointId = " << endpointId);
 
@@ -237,12 +239,12 @@ FileSystem::Error USBDevice::getEndpointDescriptor(u8 endpointId, USBDescriptor:
                           desc, sizeof(*desc));
 }
 
-FileSystem::Error USBDevice::setAddress(u8 address)
+Error USBDevice::setAddress(u8 address)
 {
     DEBUG("address =" << address);
 
     // Send the request
-    FileSystem::Error r = controlMessage(USBTransfer::SetAddress,
+    Error r = controlMessage(USBTransfer::SetAddress,
                              USBTransfer::Out,
                              USBTransfer::Standard,
                              USBTransfer::Device,
@@ -255,7 +257,7 @@ FileSystem::Error USBDevice::setAddress(u8 address)
     return r;
 }
 
-FileSystem::Error USBDevice::setConfiguration(u8 configId)
+Error USBDevice::setConfiguration(u8 configId)
 {
     DEBUG("configId =" << configId);
     return controlMessage(USBTransfer::SetConfiguration,
@@ -265,7 +267,7 @@ FileSystem::Error USBDevice::setConfiguration(u8 configId)
                           configId, 0, 0, 0);
 }
 
-FileSystem::Error USBDevice::controlMessage(u8 request,
+Error USBDevice::controlMessage(u8 request,
                                 const USBTransfer::Direction direction,
                                 const USBTransfer::RequestType type,
                                 const USBTransfer::Recipient recipient,
@@ -310,7 +312,7 @@ FileSystem::Error USBDevice::controlMessage(u8 request,
     return submit(msg);
 }
 
-FileSystem::Error USBDevice::transfer(const USBTransfer::Type type,
+Error USBDevice::transfer(const USBTransfer::Type type,
                           const USBTransfer::Direction direction,
                           Address endpointId,
                           void *buffer,
@@ -344,7 +346,7 @@ FileSystem::Error USBDevice::transfer(const USBTransfer::Type type,
     return submit(msg);
 }
 
-FileSystem::Error USBDevice::beginTransfer(
+Error USBDevice::beginTransfer(
     const USBTransfer::Type type,
     const USBTransfer::Direction direction,
     Address endpointId,
@@ -394,14 +396,13 @@ FileSystem::Error USBDevice::beginTransfer(
         fs.size   = sizeof(*msg);
         fs.offset = (Size) buffer;
         fs.from   = SELF;
-        fs.deviceID.minor = fd->identifier;
-        if (ChannelClient::instance->sendRequest(mnt, &fs, sizeof(fs), callback) == ChannelClient::Success)
+        if (ChannelClient::instance()->sendRequest(mnt, &fs, sizeof(fs), callback) == ChannelClient::Success)
             return FileSystem::Success;
     }
     return FileSystem::IOError;
 }
 
-FileSystem::Error USBDevice::finishTransfer(FileSystemMessage *msg)
+Error USBDevice::finishTransfer(FileSystemMessage *msg)
 {
     DEBUG("");
 
@@ -415,7 +416,7 @@ FileSystem::Error USBDevice::finishTransfer(FileSystemMessage *msg)
     return FileSystem::Success;
 }
 
-FileSystem::Error USBDevice::submit(USBMessage & msg)
+Error USBDevice::submit(USBMessage & msg)
 {
     DEBUG("");
 

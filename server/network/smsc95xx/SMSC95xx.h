@@ -41,7 +41,7 @@ class SMSC95xx : public NetworkDevice
     /**
      * Constructor
      */
-    SMSC95xx(u8 deviceId, const char *usbPath, NetworkServer *server);
+    SMSC95xx(u8 deviceId, const char *usbPath, NetworkServer &server);
 
     /**
      * Destructor
@@ -49,36 +49,36 @@ class SMSC95xx : public NetworkDevice
     virtual ~SMSC95xx();
 
     /**
-     * Initialize the controller.
+     * Initialize the device
      *
      * @return Result code
      */
-    virtual FileSystem::Error initialize();
+    virtual FileSystem::Result initialize();
 
     /**
      * Read ethernet address.
      *
      * @param address Ethernet address reference for output
      *
-     * @return FileSystem::Error code
+     * @return Result code
      */
-    virtual FileSystem::Error getAddress(Ethernet::Address *address);
+    virtual FileSystem::Result getAddress(Ethernet::Address *address);
 
     /**
      * Set ethernet address
      *
      * @param address New ethernet address to set
      *
-     * @return FileSystem::Error code
+     * @return Result code
      */
-    virtual FileSystem::Error setAddress(Ethernet::Address *address);
+    virtual FileSystem::Result setAddress(const Ethernet::Address *address);
 
     /**
      * Transmit one network packet
      *
      * @param pkt Network packet buffer
      */
-    virtual FileSystem::Error transmit(NetworkQueue::Packet *pkt);
+    virtual FileSystem::Result transmit(NetworkQueue::Packet *pkt);
 
   private:
 

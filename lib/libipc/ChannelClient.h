@@ -36,9 +36,15 @@
 /**
  * Client for using Channels.
  */
-class ChannelClient : public Singleton<ChannelClient>
+class ChannelClient : public StrictSingleton<ChannelClient>
 {
   private:
+
+    /** Maximum number of concurrent outgoing requests. */
+    static const Size MaximumRequests = 32u;
+
+    /** Maximum number of retries for establishing new connection. */
+    static const Size MaxConnectRetries = 16u;
 
     /**
      * Holds an outgoing request
@@ -92,18 +98,9 @@ class ChannelClient : public Singleton<ChannelClient>
     /**
      * Get channel registry.
      *
-     * @return ChannelRegistry object pointer or ZERO if not set
+     * @return ChannelRegistry object reference
      */
-    ChannelRegistry * getRegistry();
-
-    /**
-     * Assign channel registry.
-     *
-     * @param registry ChannelRegistry object pointer
-     *
-     * @return Result code
-     */
-    Result setRegistry(ChannelRegistry *registry);
+    ChannelRegistry & getRegistry();
 
     /**
      * Initialize the ChannelClient.
@@ -224,10 +221,13 @@ class ChannelClient : public Singleton<ChannelClient>
   private:
 
     /** Contains registered channels */
-    ChannelRegistry *m_registry;
+    ChannelRegistry m_registry;
 
     /** Contains ongoing requests */
-    Index<Request> m_requests;
+    Index<Request, MaximumRequests> m_requests;
+
+    /** Current Process ID */
+    const ProcessID m_pid;
 };
 
 /**

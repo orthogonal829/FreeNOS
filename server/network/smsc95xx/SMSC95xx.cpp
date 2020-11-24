@@ -19,13 +19,12 @@
 #include <Log.h>
 #include "SMSC95xx.h"
 
-SMSC95xx::SMSC95xx(u8 deviceId, const char *usbPath, NetworkServer *server)
+SMSC95xx::SMSC95xx(u8 deviceId, const char *usbPath, NetworkServer &server)
     : NetworkDevice(server)
 {
     DEBUG("");
 
-    m_usb = new SMSC95xxUSB(deviceId, usbPath, server, this);
-    m_server = server;
+    m_usb = new SMSC95xxUSB(deviceId, usbPath, &server, this);
 }
 
 SMSC95xx::~SMSC95xx()
@@ -35,28 +34,30 @@ SMSC95xx::~SMSC95xx()
     delete m_usb;
 }
 
-FileSystem::Error SMSC95xx::initialize()
+FileSystem::Result SMSC95xx::initialize()
 {
     DEBUG("");
 
     m_maximumPacketSize += SMSC95xxUSB::TransmitCommandSize;
-    FileSystem::Error r = NetworkDevice::initialize();
-    if (r != FileSystem::Success)
+
+    const FileSystem::Result result = NetworkDevice::initialize();
+    if (result != FileSystem::Success)
     {
         ERROR("failed to initialize NetworkDevice");
-        return r;
+        return result;
     }
 
-    r = m_usb->initialize();
+    Error r = m_usb->initialize();
     if (r != FileSystem::Success)
     {
         ERROR("failed to initialize SMSC95xxUSB");
-        return r;
+        return FileSystem::IOError;
     }
+
     return FileSystem::Success;
 }
 
-FileSystem::Error SMSC95xx::getAddress(Ethernet::Address *address)
+FileSystem::Result SMSC95xx::getAddress(Ethernet::Address *address)
 {
     DEBUG("");
 
@@ -66,17 +67,19 @@ FileSystem::Error SMSC95xx::getAddress(Ethernet::Address *address)
     address->addr[3] = 0x33;
     address->addr[4] = 0x44;
     address->addr[5] = 0x55;
+
     return FileSystem::Success;
 }
 
-FileSystem::Error SMSC95xx::setAddress(Ethernet::Address *address)
+FileSystem::Result SMSC95xx::setAddress(const Ethernet::Address *address)
 {
     DEBUG("");
     return FileSystem::Success;
 }
 
-FileSystem::Error SMSC95xx::transmit(NetworkQueue::Packet *pkt)
+FileSystem::Result SMSC95xx::transmit(NetworkQueue::Packet *pkt)
 {
     DEBUG("");
+
     return m_usb->transmit(pkt);
 }

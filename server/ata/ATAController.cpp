@@ -15,12 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <KernelLog.h>
 #include <DeviceServer.h>
 #include "ATAController.h"
 #include <Types.h>
 
 int main(int argc, char **argv)
 {
+    KernelLog log;
     DeviceServer server("/dev/ata");
     server.registerDevice(new ATAController, "ata0");
 
@@ -42,7 +44,7 @@ ATAController::ATAController()
     m_identifier << "ata0";
 }
 
-FileSystem::Error ATAController::initialize()
+FileSystem::Result ATAController::initialize()
 {
     ATADrive *drive;
 
@@ -96,12 +98,15 @@ FileSystem::Error ATAController::initialize()
     return FileSystem::Success;
 }
 
-FileSystem::Error ATAController::read(IOBuffer & buffer, Size size, Size offset)
+FileSystem::Result ATAController::read(IOBuffer & buffer,
+                                       Size & size,
+                                       const Size offset)
 {
     u8 sectors = CEIL(size, 512);
     u16 block[256];
     u32 lba     = offset / 512;
     Size result = 0;
+    Size off = offset;
 
     // Verify LBA
     if (drives.isEmpty() || drives.first()->identity.sectors28 < lba)
@@ -130,21 +135,22 @@ FileSystem::Error ATAController::read(IOBuffer & buffer, Size size, Size offset)
         }
 
         // Calculate maximum bytes
-        Size bytes = (size - result) < 512 - (offset % 512) ?
-                     (size - result) : 512 - (offset % 512);
+        Size bytes = (size - result) < 512 - (off % 512) ?
+                     (size - result) : 512 - (off % 512);
 
         // Copy to buffer
-        buffer.bufferedWrite(((u8 *)block) + (offset % 512), bytes);
+        buffer.bufferedWrite(((u8 *)block) + (off % 512), bytes);
 
         // Update state
         result += bytes;
-        offset += bytes;
+        off += bytes;
     }
 
-    return result;
+    size = result;
+    return FileSystem::Success;
 }
 
-FileSystem::Error ATAController::interrupt(Size vector)
+FileSystem::Result ATAController::interrupt(const Size vector)
 {
     INFO("ATA interrupted on IRQ " << vector);
     return FileSystem::Success;

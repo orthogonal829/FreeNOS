@@ -166,8 +166,8 @@ class SynopsisController : public USBController
      *
      * @return Result code
      */
-    virtual FileSystem::Error transfer(const FileSystemMessage *msg,
-                                       USBMessage *usb);
+    virtual Error transfer(const FileSystemMessage *msg,
+                           USBMessage *usb);
 
   private:
 
@@ -202,7 +202,7 @@ class SynopsisController : public USBController
     BroadcomPower m_power;
 
     /** Channels. */
-    Index<SynopsisChannel> m_channels;
+    Index<SynopsisChannel, ChannelCount> m_channels;
 };
 
 /**

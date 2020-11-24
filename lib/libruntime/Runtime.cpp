@@ -20,7 +20,6 @@
 #include <Macros.h>
 #include <Array.h>
 #include <FileSystemClient.h>
-#include <ChannelClient.h>
 #include <PoolAllocator.h>
 #include <FileSystemMount.h>
 #include <FileDescriptor.h>
@@ -36,13 +35,23 @@ extern void (*CTOR_LIST)();
 /** List of destructors. */
 extern void (*DTOR_LIST)();
 
-/** Initial logging instance */
-static KernelLog log;
-
 void * __dso_handle = 0;
 
 extern C void __aeabi_unwind_cpp_pr0()
 {
+}
+
+extern C int __cxa_guard_acquire(u32 *guard)
+{
+    if (*guard)
+        return 0;
+    else
+        return 1;
+}
+
+extern C void __cxa_guard_release(u32 *guard)
+{
+    *guard = 1;
 }
 
 extern C int __cxa_atexit(void (*func) (void *),
@@ -114,14 +123,6 @@ void setupHeap()
     Allocator::setDefault(poolAlloc);
 }
 
-void setupChannels()
-{
-    ChannelClient *client = new ChannelClient();
-    (void) client;
-
-    ChannelClient::instance->setRegistry(new ChannelRegistry());
-}
-
 void setupMappings()
 {
     FileSystemClient filesystem;
@@ -160,7 +161,6 @@ extern C void SECTION(".entry") _entry()
     // Setup the heap, C++ constructors and default mounts
     setupHeap();
     runConstructors();
-    setupChannels();
     setupMappings();
 
     // Allocate buffer for arguments

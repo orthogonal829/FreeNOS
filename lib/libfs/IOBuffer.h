@@ -19,6 +19,8 @@
 #define __LIB_LIBFS_IOBUFFER_H
 
 #include <Types.h>
+#include <Macros.h>
+#include <Memory.h>
 #include "FileSystemMessage.h"
 
 /**
@@ -61,6 +63,13 @@ class IOBuffer
     Size getCount() const;
 
     /**
+     * Increment byte counter
+     *
+     * @param bytes Number of bytes to increment
+     */
+    void addCount(const Size bytes);
+
+    /**
      * Set filesystem message
      *
      * @param msg FileSystemMessage pointer
@@ -79,7 +88,7 @@ class IOBuffer
      *
      * @return Buffer pointer.
      */
-    const u8 * getBuffer() const;
+    u8 * getBuffer();
 
     /**
      * @brief Read bytes from the I/O buffer.
@@ -88,9 +97,11 @@ class IOBuffer
      * @param size Number of bytes to copy.
      * @param offset The offset inside the I/O buffer to start reading.
      *
-     * @return Number of bytes read on success, and error code on failure.
+     * @return Result code
      */
-    FileSystem::Error read(void *buffer, Size size, Size offset = ZERO) const;
+    FileSystem::Result read(void *buffer,
+                            const Size size,
+                            const Size offset = ZERO);
 
     /**
      * Write bytes to the I/O buffer.
@@ -99,16 +110,18 @@ class IOBuffer
      * @param size Number of bytes to write.
      * @param offset The offset inside the I/O buffer to start writing.
      *
-     * @return Number of bytes written on success, and error code on failure.
+     * @return Result code
      */
-    FileSystem::Error write(void *buffer, Size size, Size offset = ZERO) const;
+    FileSystem::Result write(const void *buffer,
+                             const Size size,
+                             const Size offset = ZERO);
 
     /**
      * Buffered read bytes from message to the I/O buffer.
      *
-     * @return Error code.
+     * @return Result code
      */
-    FileSystem::Error bufferedRead();
+    FileSystem::Result bufferedRead();
 
     /**
      * Buffered write bytes to the I/O buffer.
@@ -117,16 +130,17 @@ class IOBuffer
      * @param size Number of bytes to write.
      * @param offset The offset inside the I/O buffer to start writing.
      *
-     * @return Number of bytes written on success, and error code on failure.
+     * @return Result code
      */
-    FileSystem::Error bufferedWrite(const void *buffer, Size size);
+    FileSystem::Result bufferedWrite(const void *buffer,
+                                     const Size size);
 
     /**
      * Flush write buffers.
      *
-     * @return Error code.
+     * @return Result code
      */
-    FileSystem::Error flush() const;
+    FileSystem::Result flushWrite();
 
     /**
      * Byte index operator.
@@ -150,6 +164,12 @@ class IOBuffer
      * @see IOBuffer::write
      */
     const FileSystemMessage *m_message;
+
+    /** True if using directly memory-mapped memory (unbuffered) */
+    bool m_directMapped;
+
+    /** Contains the memory address range of the direct memory mapping */
+    Memory::Range m_directMapRange;
 
     /** Buffer for storing temporary data. */
     u8 *m_buffer;
